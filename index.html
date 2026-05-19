@@ -891,32 +891,64 @@ function closeModal(){document.getElementById('modal-bg').classList.remove('open
    работает на mock-данных. Backend описан в /backend/README.md.
 */
 async function loadLiveData(){
+  // Сначала пробуем serverless-функцию Vercel, которая ходит на MOEX ISS в реальном времени.
+  // Если её нет (например, при локальном открытии файла) — fallback на статический prices.json.
   const candidates = [
-    './backend/data/prices.json',  // local dev: backend в подпапке
-    './data/prices.json',           // прод: nginx раздаёт data/ рядом с index.html
-    '/data/prices.json',            // прод: nginx с абсолютным путём
+    '/api/prices',                  // прод: Vercel serverless function (живые данные MOEX)
+    './backend/data/prices.json',   // local dev: backend в подпапке
+    './data/prices.json',           // прод: статический fallback рядом с index.html
+    '/data/prices.json',            // прод: абсолютный путь
   ];
   for (const url of candidates){
     try {
       const resp = await fetch(url, {cache: 'no-cache'});
       if (!resp.ok) continue;
       const data = await resp.json();
+      if (!data.stocks || data.stocks.length === 0) continue;
       applyLiveData(data);
       const dt = new Date(data.as_of);
       document.getElementById('freshness-text').textContent =
         `Обновлено: ${dt.toLocaleString('ru-RU', {dateStyle:'medium', timeStyle:'short'})}`;
-      document.getElementById('source-pill').textContent = `Источник: ${data.source} · ${data.coverage}/${data.universe_size}`;
-      console.log('Loaded live data from', url, '— ', data.coverage, 'tickers');
+      const sourceText = url.startsWith('/api/')
+        ? `Источник: ${data.source} (live) · ${data.coverage}/${data.universe_size}`
+        : `Источник: ${data.source} · ${data.coverage}/${data.universe_size}`;
+      document.getElementById('source-pill').textContent = sourceText;
+      // Зелёный бейдж только для live-источника
+      if (url.startsWith('/api/')) {
+        document.getElementById('source-pill').style.background = '#0f3d28';
+        document.getElementById('source-pill').style.color = '#5fe9a2';
+      }
+      console.log('Loaded data from', url, '— ', data.coverage, 'tickers');
       return true;
     } catch (e) {
       console.debug('Skip', url, e.message);
     }
   }
   // Не нашли — мок
-  document.getElementById('freshness-text').textContent = 'Обновлено: 19 мая 2026, 21:30 МСК (mock)';
+  document.getElementById('freshness-text').textContent = 'Данные недоступны';
+  document.getElementById('source-pill').textContent = 'Источник: mock';
   document.getElementById('source-pill').style.background = '#1a1410';
   document.getElementById('source-pill').style.color = '#fbbf24';
   return false;
+}
+
+// Кеш YTD-серий в памяти браузера — не дёргать /api/ytd повторно при одном и том же тикере
+const _ytdCache = new Map();
+
+async function fetchYtdSeries(ticker){
+  if (_ytdCache.has(ticker)) return _ytdCache.get(ticker);
+  try {
+    const resp = await fetch(`/api/ytd?ticker=${encodeURIComponent(ticker)}`, {cache: 'no-cache'});
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (!data.ytd_series || data.ytd_series.length === 0) throw new Error('empty_series');
+    _ytdCache.set(ticker, data);
+    return data;
+  } catch (e) {
+    console.debug('YTD fetch failed for', ticker, e.message);
+    _ytdCache.set(ticker, null);
+    return null;
+  }
 }
 
 function applyLiveData(prices){
@@ -1016,12 +1048,59 @@ function renderYTDFromSeries(series, ytdPct, high, low){
 }
 
 /* Прокидываем активный тикер через side-channel: оригинальный openModal
-   вызывает genYTDChart, наша обёртка достаёт live-серию через window._activeTicker */
+   вызывает genYTDChart, наша обёртка достаёт live-серию через window._activeTicker.
+   После открытия модального окна — асинхронно подтягиваем настоящую YTD-серию с
+   /api/ytd и перерисовываем график. */
 const _origOpenModal = openModal;
 openModal = function(ticker, view){
   window._activeTicker = ticker;
-  return _origOpenModal(ticker, view);
+  _origOpenModal(ticker, view);
+
+  // Ленивая загрузка реальной YTD-серии с MOEX
+  const ytdContainer = document.querySelector('#modal-content .ytd-wrap');
+  if (!ytdContainer) return;
+  // Маркер загрузки
+  const loadingNote = document.createElement('div');
+  loadingNote.style.cssText = 'font-size:11px;color:var(--text-mute);margin-top:6px;';
+  loadingNote.textContent = '⏳ Загружаем настоящую историю цены с MOEX...';
+  ytdContainer.appendChild(loadingNote);
+
+  fetchYtdSeries(ticker).then(live => {
+    // Если пользователь уже закрыл окно — ничего не перерисовываем
+    if (window._activeTicker !== ticker) return;
+    if (!live) {
+      loadingNote.textContent = '⚠ Не удалось загрузить YTD с MOEX — показан синтетический график';
+      loadingNote.style.color = '#fbbf24';
+      return;
+    }
+    // Обогащаем faData для дальнейших открытий
+    const faItem = faData.find(x => x.ticker === ticker);
+    if (faItem) {
+      faItem._ytd_series = live.ytd_series;
+      faItem._ytd_pct    = live.ytd_pct;
+      faItem._ytd_high   = live.ytd_high;
+      faItem._ytd_low    = live.ytd_low;
+    }
+    // Перерисовываем график live-данными
+    const ytd = renderYTDFromSeries(live.ytd_series, live.ytd_pct, live.ytd_high, live.ytd_low);
+    const svgWrap = ytdContainer.querySelector('svg.ytd-chart');
+    if (svgWrap) svgWrap.outerHTML = ytd.svg;
+    // Обновляем заголовок и метки
+    const perf = ytdContainer.querySelector('.ytd-perf');
+    if (perf) {
+      perf.className = `ytd-perf ${ytd.cls}`;
+      perf.textContent = `${ytd.ytdPct >= 0 ? '+' : ''}${ytd.ytdPct.toFixed(2)}%`;
+    }
+    const subtitle = ytdContainer.querySelector('.ytd-head > div > div:nth-child(2)');
+    if (subtitle && live.ytd_series.length > 0) {
+      const first = live.ytd_series[0].d;
+      const lastD = live.ytd_series[live.ytd_series.length - 1].d;
+      subtitle.textContent = `${first} → ${lastD} · ${ytd.startPrice.toFixed(faItem && faItem.price < 1 ? 4 : 2)} ₽ → ${ytd.endPrice.toLocaleString('ru-RU')} ₽`;
+    }
+    loadingNote.remove();
+  });
 };
+
 function closeModal(){
   document.getElementById('modal-bg').classList.remove('open');
   window._activeTicker = null;
