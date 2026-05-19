@@ -511,16 +511,22 @@
 
   <div class="chart-wrap">
     <div class="chart-controls">
-      <span style="color:var(--text-mute);font-size:13px;">Тикер MOEX:</span>
+      <span style="color:var(--text-mute);font-size:13px;">Быстрый выбор:</span>
+      <select class="flt-select" id="chart-ticker-quick" onchange="onQuickTickerChange()" style="width:auto;min-width:180px;font-weight:600;">
+        <option value="">— Выберите тикер —</option>
+      </select>
+      <span style="color:var(--text-mute);font-size:13px;margin-left:10px;">или ввести:</span>
       <input class="chart-ticker-input" id="chart-ticker-input" value="SBER" onkeydown="if(event.key==='Enter') updateTvChart()" />
       <button class="btn btn-ghost" onclick="updateTvChart()" style="padding:7px 14px;">Загрузить</button>
-      <span style="margin-left:auto;color:var(--text-mute);font-size:12px;">Внутри: ⇄ таймфрейм, 🎚 индикаторы, ✎ линии, тип графика</span>
+      <span style="margin-left:auto;color:var(--text-mute);font-size:12px;">Внутри: ⇄ таймфрейм, 🎚 индикаторы, ✎ линии</span>
     </div>
     <div id="tv_chart"></div>
   </div>
 
   <p style="color:var(--text-mute);font-size:12px;margin-top:10px;">
-    Виджет от TradingView. Данные котировок поступают с MOEX через инфраструктуру TradingView. Не требует регистрации.
+    Виджет от TradingView. Меняйте тикер через выпадающий список выше — это самый быстрый способ.
+    Можно также вписать любой тикер MOEX в поле и нажать «Загрузить». Расширенные возможности
+    (сохранение разметки, экспорт, продвинутый search) требуют регистрации на tradingview.com.
   </p>
 </section>
 
@@ -773,6 +779,7 @@ function applyLiveData(data){
     });
 
   populateSectorFilter();
+  populateChartTickerDropdown();
 }
 
 async function loadMarket(){
@@ -850,7 +857,10 @@ function initTvChart(ticker){
     locale: "ru",
     toolbar_bg: "#161b25",
     enable_publishing: false,
+    allow_symbol_change: true,
     hide_side_toolbar: false,
+    withdateranges: true,
+    save_image: false,
     studies: [
       "MASimple@tv-basicstudies",
       "RSI@tv-basicstudies",
@@ -862,6 +872,20 @@ function updateTvChart(){
   const ticker = (document.getElementById('chart-ticker-input').value || 'SBER').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
   if (!ticker) return;
   initTvChart(ticker);
+}
+function onQuickTickerChange(){
+  const sel = document.getElementById('chart-ticker-quick');
+  if (!sel.value) return;
+  document.getElementById('chart-ticker-input').value = sel.value;
+  updateTvChart();
+}
+function populateChartTickerDropdown(){
+  const sel = document.getElementById('chart-ticker-quick');
+  if (!sel || !allStocks.length) return;
+  // Сортируем по тикеру алфавитно для удобства поиска
+  const sorted = [...allStocks].sort((a, b) => a.ticker.localeCompare(b.ticker));
+  sel.innerHTML = '<option value="">— Выберите тикер —</option>' +
+    sorted.map(s => `<option value="${s.ticker}">${s.ticker} · ${s.name}</option>`).join('');
 }
 
 function chip(text, color){return `<span class="chip ${color}">${text}</span>`;}
