@@ -202,6 +202,7 @@
       <a href="#methodology">Методология</a>
       <a href="#sources">Источники данных</a>
       <a href="#faq">FAQ</a>
+      <a href="/guide.pdf" target="_blank" rel="noopener">Руководство</a>
       <a href="#subscribe">Подписка</a>
     </div>
     <button class="btn">API доступ</button>
@@ -220,6 +221,7 @@
   <div class="hero-cta">
     <button class="btn" onclick="document.getElementById('rankings').scrollIntoView({behavior:'smooth'})">Смотреть TOP-30 →</button>
     <button class="btn btn-ghost" onclick="document.getElementById('methodology').scrollIntoView({behavior:'smooth'})">Как считается рейтинг</button>
+    <a class="btn btn-ghost" href="/guide.pdf" target="_blank" rel="noopener" style="text-decoration:none;">📄 Руководство (PDF)</a>
   </div>
 
   <div class="kpis">
@@ -450,6 +452,17 @@
   </div>
 </section>
 
+<!-- ── Guide highlight ── -->
+<section>
+  <div class="card" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:space-between;">
+    <div style="flex:1;min-width:280px;">
+      <h3 style="margin-bottom:6px;">📄 Руководство пользователя</h3>
+      <p style="color:var(--text-mute);margin:0;">PDF на 10 страниц, простым языком: что это за сервис, как читать каждый блок страницы, откуда берутся данные, как считается рейтинг и что важно знать перед использованием.</p>
+    </div>
+    <a class="btn" href="/guide.pdf" target="_blank" rel="noopener" style="text-decoration:none;">Открыть PDF →</a>
+  </div>
+</section>
+
 <!-- ── CTA ── -->
 <section id="subscribe">
   <div class="grid-3">
@@ -476,7 +489,10 @@
 <footer>
   <div class="footer-inner">
     <div>© 2026 MOEX TOP-30. Аналитический сервис. ИНН: 9999999999.</div>
-    <div>Не является инвестиционной рекомендацией.</div>
+    <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+      <a href="/guide.pdf" target="_blank" rel="noopener" style="color:var(--accent);">📄 Руководство пользователя (PDF)</a>
+      <span>Не является инвестиционной рекомендацией.</span>
+    </div>
   </div>
 </footer>
 
