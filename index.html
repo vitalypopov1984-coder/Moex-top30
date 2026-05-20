@@ -140,12 +140,19 @@
   .mm-tile .ch{font-size:13px;margin-top:2px;font-weight:600;}
   .mm-tile .pr{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;}
 
-  /* TradingView */
+  /* Chart */
   .chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
-  .chart-controls{display:flex;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;}
-  .chart-ticker-input{background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:14px;font-weight:600;outline:none;width:140px;text-transform:uppercase;}
+  .chart-controls{display:flex;gap:10px;padding:12px 16px;flex-wrap:wrap;align-items:center;}
+  .chart-ticker-input{background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:14px;font-weight:600;outline:none;width:120px;text-transform:uppercase;}
   .chart-ticker-input:focus{border-color:var(--accent);}
-  #tv_chart{width:100%;height:600px;}
+  .tf-buttons{display:inline-flex;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;}
+  .tf-btn{background:transparent;border:0;color:var(--text-mute);padding:5px 10px;font-size:12px;border-radius:6px;cursor:pointer;font-weight:600;}
+  .tf-btn:hover{color:var(--text);}
+  .tf-btn.active{background:var(--accent);color:#0b0e14;}
+  .ind-toggle{color:var(--text-mute);font-size:12px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
+  .ind-toggle input{cursor:pointer;}
+  .ind-toggle:hover{color:var(--text);}
+  #lw_chart{width:100%;height:560px;background:var(--bg);}
 
   /* Cards */
   .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
@@ -511,22 +518,48 @@
 
   <div class="chart-wrap">
     <div class="chart-controls">
-      <span style="color:var(--text-mute);font-size:13px;">Быстрый выбор:</span>
-      <select class="flt-select" id="chart-ticker-quick" onchange="onQuickTickerChange()" style="width:auto;min-width:180px;font-weight:600;">
-        <option value="">— Выберите тикер —</option>
+      <span style="color:var(--text-mute);font-size:13px;">Тикер:</span>
+      <select class="flt-select" id="chart-ticker-quick" onchange="onQuickTickerChange()" style="width:auto;min-width:200px;font-weight:600;">
+        <option value="">— Выберите —</option>
       </select>
-      <span style="color:var(--text-mute);font-size:13px;margin-left:10px;">или ввести:</span>
-      <input class="chart-ticker-input" id="chart-ticker-input" value="SBER" onkeydown="if(event.key==='Enter') updateTvChart()" />
-      <button class="btn btn-ghost" onclick="updateTvChart()" style="padding:7px 14px;">Загрузить</button>
-      <span style="margin-left:auto;color:var(--text-mute);font-size:12px;">Внутри: ⇄ таймфрейм, 🎚 индикаторы, ✎ линии</span>
+      <input class="chart-ticker-input" id="chart-ticker-input" value="SBER" onkeydown="if(event.key==='Enter') reloadChart()" />
+      <button class="btn btn-ghost" onclick="reloadChart()" style="padding:7px 14px;">Загрузить</button>
     </div>
-    <div id="tv_chart"></div>
+    <div class="chart-controls" style="border-top:1px solid var(--border);">
+      <span style="color:var(--text-mute);font-size:13px;">Таймфрейм:</span>
+      <div class="tf-buttons" id="tf-buttons">
+        <button class="tf-btn" data-interval="10">10м</button>
+        <button class="tf-btn" data-interval="60">1ч</button>
+        <button class="tf-btn active" data-interval="24">День</button>
+        <button class="tf-btn" data-interval="7">Неделя</button>
+        <button class="tf-btn" data-interval="31">Месяц</button>
+      </div>
+      <span style="color:var(--text-mute);font-size:13px;margin-left:14px;">Период:</span>
+      <div class="tf-buttons" id="period-buttons">
+        <button class="tf-btn" data-period="1m">1М</button>
+        <button class="tf-btn" data-period="3m">3М</button>
+        <button class="tf-btn" data-period="6m">6М</button>
+        <button class="tf-btn active" data-period="1y">1Г</button>
+        <button class="tf-btn" data-period="3y">3Г</button>
+        <button class="tf-btn" data-period="5y">5Л</button>
+      </div>
+      <span style="color:var(--text-mute);font-size:13px;margin-left:14px;">Индикаторы:</span>
+      <label class="ind-toggle"><input type="checkbox" id="ind-sma20" checked onchange="reloadChart()"> SMA(20)</label>
+      <label class="ind-toggle"><input type="checkbox" id="ind-sma50" checked onchange="reloadChart()"> SMA(50)</label>
+      <label class="ind-toggle"><input type="checkbox" id="ind-ema200" onchange="reloadChart()"> EMA(200)</label>
+      <label class="ind-toggle"><input type="checkbox" id="ind-volume" checked onchange="reloadChart()"> Объёмы</label>
+    </div>
+    <div id="chart-status" style="padding:8px 16px;font-size:12px;color:var(--text-mute);border-top:1px solid var(--border);min-height:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <span id="chart-status-text">Загрузка...</span>
+      <span id="chart-tooltip" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text);"></span>
+    </div>
+    <div id="lw_chart" style="width:100%;height:560px;background:var(--bg);"></div>
   </div>
 
   <p style="color:var(--text-mute);font-size:12px;margin-top:10px;">
-    Виджет от TradingView. Меняйте тикер через выпадающий список выше — это самый быстрый способ.
-    Можно также вписать любой тикер MOEX в поле и нажать «Загрузить». Расширенные возможности
-    (сохранение разметки, экспорт, продвинутый search) требуют регистрации на tradingview.com.
+    График построен на open-source библиотеке Lightweight Charts от TradingView (MIT-лицензия)
+    с данными напрямую от MOEX ISS API. Японские свечи, объёмы, скользящие средние, любой таймфрейм.
+    Управление: колесо мыши — масштаб, перетаскивание — панорама, hover — детали свечи.
   </p>
 </section>
 
@@ -842,50 +875,211 @@ function renderMarketMap(gainers, losers){
   renderList(losers, 'mm-losers');
 }
 
-let tvWidget = null;
-function initTvChart(ticker){
-  if (typeof TradingView === 'undefined') return;
-  document.getElementById('tv_chart').innerHTML = '';
-  tvWidget = new TradingView.widget({
-    autosize: true,
-    symbol: `MOEX:${ticker}`,
-    interval: "D",
-    container_id: "tv_chart",
-    timezone: "Europe/Moscow",
-    theme: "dark",
-    style: "1",
-    locale: "ru",
-    toolbar_bg: "#161b25",
-    enable_publishing: false,
-    allow_symbol_change: true,
-    hide_side_toolbar: false,
-    withdateranges: true,
-    save_image: false,
-    studies: [
-      "MASimple@tv-basicstudies",
-      "RSI@tv-basicstudies",
-      "Volume@tv-basicstudies",
-    ],
+/* ── Lightweight Charts: свой свечной график ─── */
+let lwChart = null, candleSeries = null, volumeSeries = null;
+let smaSeries = {};   // {sma20: series, sma50: series, ema200: series}
+const chartState = { ticker: 'SBER', interval: '24', period: '1y' };
+
+function periodToFromDate(period) {
+  const d = new Date();
+  switch (period) {
+    case '1m': d.setMonth(d.getMonth() - 1); break;
+    case '3m': d.setMonth(d.getMonth() - 3); break;
+    case '6m': d.setMonth(d.getMonth() - 6); break;
+    case '1y': d.setFullYear(d.getFullYear() - 1); break;
+    case '3y': d.setFullYear(d.getFullYear() - 3); break;
+    case '5y': d.setFullYear(d.getFullYear() - 5); break;
+    default:   d.setFullYear(d.getFullYear() - 1);
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+// Простая скользящая средняя
+function sma(values, period) {
+  const out = [];
+  let sum = 0;
+  for (let i = 0; i < values.length; i++) {
+    sum += values[i];
+    if (i >= period) sum -= values[i - period];
+    if (i >= period - 1) out.push({ idx: i, v: sum / period });
+  }
+  return out;
+}
+// Экспоненциальная скользящая средняя
+function ema(values, period) {
+  const out = [];
+  const k = 2 / (period + 1);
+  let prev = null;
+  for (let i = 0; i < values.length; i++) {
+    if (i === 0) { prev = values[i]; continue; }
+    prev = values[i] * k + prev * (1 - k);
+    if (i >= period - 1) out.push({ idx: i, v: prev });
+  }
+  return out;
+}
+
+function initLwChart() {
+  if (typeof LightweightCharts === 'undefined') return;
+  const container = document.getElementById('lw_chart');
+  container.innerHTML = '';
+  lwChart = LightweightCharts.createChart(container, {
+    width: container.clientWidth,
+    height: 560,
+    layout: { background: { color: '#0b0e14' }, textColor: '#e7ecf3' },
+    grid: { vertLines: { color: '#1c222e' }, horzLines: { color: '#1c222e' } },
+    timeScale: { borderColor: '#232a36', timeVisible: true, secondsVisible: false },
+    rightPriceScale: { borderColor: '#232a36' },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+  });
+  candleSeries = lwChart.addCandlestickSeries({
+    upColor: '#22c55e', downColor: '#ef4444',
+    borderUpColor: '#22c55e', borderDownColor: '#ef4444',
+    wickUpColor: '#22c55e', wickDownColor: '#ef4444',
+  });
+
+  // Resize handler
+  window.addEventListener('resize', () => {
+    if (lwChart && container) lwChart.applyOptions({ width: container.clientWidth });
+  });
+
+  // Crosshair tooltip
+  lwChart.subscribeCrosshairMove(param => {
+    const tip = document.getElementById('chart-tooltip');
+    if (!param.time || !param.seriesData || param.seriesData.size === 0) {
+      tip.textContent = '';
+      return;
+    }
+    const c = param.seriesData.get(candleSeries);
+    if (!c) { tip.textContent = ''; return; }
+    const t = (typeof param.time === 'string') ? param.time : new Date(param.time * 1000).toISOString().slice(0,10);
+    tip.innerHTML = `${t}  <span style="color:var(--text-mute)">O</span> ${c.open.toFixed(2)}  <span style="color:var(--text-mute)">H</span> ${c.high.toFixed(2)}  <span style="color:var(--text-mute)">L</span> ${c.low.toFixed(2)}  <span style="color:var(--text-mute)">C</span> <strong>${c.close.toFixed(2)}</strong>`;
   });
 }
-function updateTvChart(){
+
+async function reloadChart() {
   const ticker = (document.getElementById('chart-ticker-input').value || 'SBER').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
   if (!ticker) return;
-  initTvChart(ticker);
+  chartState.ticker = ticker;
+  const statusEl = document.getElementById('chart-status-text');
+  statusEl.textContent = `⏳ Загрузка ${ticker} с MOEX...`;
+  statusEl.style.color = 'var(--text-mute)';
+
+  const from = periodToFromDate(chartState.period);
+  try {
+    const resp = await fetch(`/api/candles?ticker=${ticker}&interval=${chartState.interval}&from=${from}`, {cache: 'no-cache'});
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.message || err.error || `HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    if (!data.candles || data.candles.length === 0) {
+      throw new Error('Нет данных от MOEX для этого тикера/периода');
+    }
+
+    // Подготовка серий для Lightweight Charts
+    const candles = data.candles.map(c => {
+      // ISS отдаёт время как 'YYYY-MM-DD HH:MM:SS'; для дневных свечей берём только дату
+      let timeVal;
+      if (chartState.interval === '24' || chartState.interval === '7' || chartState.interval === '31') {
+        timeVal = c.t.slice(0, 10);
+      } else {
+        // Внутридневной — нужен Unix timestamp
+        timeVal = Math.floor(new Date(c.t.replace(' ', 'T') + 'Z').getTime() / 1000);
+      }
+      return { time: timeVal, open: c.o, high: c.h, low: c.l, close: c.c, volume: c.v };
+    });
+
+    if (!lwChart) initLwChart();
+    candleSeries.setData(candles.map(c => ({ time: c.time, open: c.open, high: c.high, low: c.low, close: c.close })));
+
+    // Volume series (внизу, как histogram overlay)
+    if (volumeSeries) { lwChart.removeSeries(volumeSeries); volumeSeries = null; }
+    if (document.getElementById('ind-volume').checked) {
+      volumeSeries = lwChart.addHistogramSeries({
+        color: 'rgba(94,234,212,0.4)',
+        priceFormat: { type: 'volume' },
+        priceScaleId: '',
+        scaleMargins: { top: 0.82, bottom: 0 },
+      });
+      volumeSeries.setData(candles.map(c => ({
+        time: c.time, value: c.volume,
+        color: c.close >= c.open ? 'rgba(34,197,94,0.45)' : 'rgba(239,68,68,0.45)',
+      })));
+    }
+
+    // Очищаем старые SMA серии
+    for (const k of Object.keys(smaSeries)) {
+      if (smaSeries[k]) lwChart.removeSeries(smaSeries[k]);
+    }
+    smaSeries = {};
+
+    const closes = candles.map(c => c.close);
+    const indConfig = [
+      { id: 'sma20',  period: 20,  color: '#3b82f6', fn: sma,  label: 'SMA20'  },
+      { id: 'sma50',  period: 50,  color: '#f59e0b', fn: sma,  label: 'SMA50'  },
+      { id: 'ema200', period: 200, color: '#a78bfa', fn: ema,  label: 'EMA200' },
+    ];
+    for (const cfg of indConfig) {
+      if (!document.getElementById(`ind-${cfg.id}`).checked) continue;
+      if (closes.length < cfg.period) continue;
+      const values = cfg.fn(closes, cfg.period);
+      const series = lwChart.addLineSeries({
+        color: cfg.color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false,
+        title: cfg.label,
+      });
+      series.setData(values.map(v => ({ time: candles[v.idx].time, value: +v.v.toFixed(4) })));
+      smaSeries[cfg.id] = series;
+    }
+
+    lwChart.timeScale().fitContent();
+
+    const last = candles[candles.length - 1];
+    const first = candles[0];
+    const change = ((last.close / first.open - 1) * 100).toFixed(2);
+    const sign = change >= 0 ? '+' : '';
+    const colorChange = change >= 0 ? 'var(--green)' : 'var(--red)';
+    statusEl.innerHTML = `<strong>${ticker}</strong> · ${data.count} свечей · ${first.time} → ${last.time} · <span style="color:${colorChange};font-weight:600;">${sign}${change}%</span>`;
+    statusEl.style.color = 'var(--text)';
+  } catch (e) {
+    statusEl.textContent = `⚠ ${ticker}: ${e.message}`;
+    statusEl.style.color = '#fbbf24';
+  }
 }
-function onQuickTickerChange(){
+
+function onQuickTickerChange() {
   const sel = document.getElementById('chart-ticker-quick');
   if (!sel.value) return;
   document.getElementById('chart-ticker-input').value = sel.value;
-  updateTvChart();
+  reloadChart();
 }
-function populateChartTickerDropdown(){
+
+function populateChartTickerDropdown() {
   const sel = document.getElementById('chart-ticker-quick');
   if (!sel || !allStocks.length) return;
-  // Сортируем по тикеру алфавитно для удобства поиска
   const sorted = [...allStocks].sort((a, b) => a.ticker.localeCompare(b.ticker));
-  sel.innerHTML = '<option value="">— Выберите тикер —</option>' +
+  sel.innerHTML = '<option value="">— Выберите —</option>' +
     sorted.map(s => `<option value="${s.ticker}">${s.ticker} · ${s.name}</option>`).join('');
+}
+
+function bindChartControls() {
+  // Кнопки таймфрейма
+  document.querySelectorAll('#tf-buttons .tf-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#tf-buttons .tf-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      chartState.interval = btn.dataset.interval;
+      reloadChart();
+    });
+  });
+  // Кнопки периода
+  document.querySelectorAll('#period-buttons .tf-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#period-buttons .tf-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      chartState.period = btn.dataset.period;
+      reloadChart();
+    });
+  });
 }
 
 function chip(text, color){return `<span class="chip ${color}">${text}</span>`;}
@@ -1216,7 +1410,7 @@ function openModal(ticker, view){
       </div>
     `}
     <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
-      <button class="btn" onclick="document.getElementById('chart-ticker-input').value='${ticker}'; updateTvChart(); closeModal(); document.getElementById('advanced-chart').scrollIntoView({behavior:'smooth'});">Открыть на большом графике</button>
+      <button class="btn" onclick="document.getElementById('chart-ticker-input').value='${ticker}'; reloadChart(); closeModal(); document.getElementById('advanced-chart').scrollIntoView({behavior:'smooth'});">Открыть на большом графике</button>
       <button class="btn btn-ghost" onclick="closeModal()">Закрыть</button>
     </div>
   `;
@@ -1251,17 +1445,21 @@ function closeModal(){
   await loadLiveData();
   await loadMarket();
   rerender();
-  const waitTV = setInterval(() => {
-    if (typeof TradingView !== 'undefined') {
-      clearInterval(waitTV);
-      initTvChart('SBER');
+  bindChartControls();
+  // Ждём, пока загрузится Lightweight Charts (она грузится async после inline <script>)
+  const waitLC = setInterval(() => {
+    if (typeof LightweightCharts !== 'undefined') {
+      clearInterval(waitLC);
+      initLwChart();
+      reloadChart();
     }
   }, 200);
-  setTimeout(() => clearInterval(waitTV), 10000);
+  setTimeout(() => clearInterval(waitLC), 10000);
 })();
 </script>
 
-<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+<!-- Lightweight Charts — open-source библиотека от TradingView -->
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 
 </body>
 </html>
