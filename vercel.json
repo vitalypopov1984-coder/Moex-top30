@@ -16,9 +16,15 @@
     {
       "source": "/guide.pdf",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400" },
+        { "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" },
         { "key": "Content-Type", "value": "application/pdf" },
         { "key": "Content-Disposition", "value": "inline; filename=\"MOEX_TOP30_user_guide.pdf\"" }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     }
   ]
